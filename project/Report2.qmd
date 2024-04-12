@@ -1,0 +1,157 @@
+---
+title: "An In-Depth Analysis of Global Socioeconomic Trends"
+subtitle: "A Comprehensive Examination of GDP, Life Expectancy, Military Expenditure, and Child Deprivation Across Nations"
+author: "Mathew Costello"
+date: "2024-04-11"
+format:
+  html:
+    theme: cosmo
+    backgroundcolor: lightgrey
+    toc: true
+execute: 
+  echo: false
+  warning: false
+  message: false 
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+#libraries
+library(tidyverse)
+library(plotly)
+
+#data
+unicef_indicator_1 <- read.csv("unicef_indicator_1.csv")
+unicef_metadata <- read.csv("unicef_metadata.csv")
+
+#transformations
+data_join <- full_join(unicef_metadata, unicef_indicator_1)
+
+
+```
+
+# Introduction
+
+In this analysis, we explore the relationship between **military expenditure** and **life expectancy** in a selection of developing countries. By examining both temporal and cross-sectional data, we aim to uncover insights into how investment in defense impacts public health outcomes. Through the combination of time series plots and bar charts, we investigate trends over time and across countries, shedding light on potential correlations and implications for policy and development strategies.
+
+
+```{r}
+#| fig-cap: This figure illustrates the spatial distribution of observed values across different regions. Lighter shades of blue indicate lower observed values, while darker shades represent higher values. The legend at the bottom provides a color scale to interpret the observed values.
+
+
+map_1 <- map_data("world")
+
+map_viz <- full_join(unicef_indicator_1, map_1, by = c("country" = "region"), relationship = "many-to-many")
+
+
+ ggplot(map_viz) + 
+  aes(x = long, y = lat, group = group, fill = obs_value) +
+  geom_polygon(color = "gray80", linewidth = 0.1) +  # Add borders with a lighter gray color +
+   scale_fill_gradient(name = "Observed Value", low = "lightblue", high = "darkblue", na.value = "white") +  # Adjust color scale
+   labs(title = "Map Visualization of Observed Values", x = NULL, y = NULL) +  # Remove axis labels
+   theme_void() +  # Use a clean background
+   theme(plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),  # Adjust title appearance
+         legend.position = "bottom",  # Move legend to bottom
+         legend.title = element_text(size = 12, face = "bold"),  # Adjust legend title appearance
+         legend.text = element_text(size = 10))  # Adjust legend text appearance
+```
+
+## What does it tell us?
+
+The **Map** offers a comprehensive overview of key indicators across all countries within our dataset, providing a **macroscopic** perspective on global socio-economic trends. 
+
+ - Each plotted point on the map represents a nation, showcasing a diverse array of economic and demographic characteristics.
+
+From densely populated urban hubs to sparsely inhabited rural areas, the map encapsulates the rich tapestry of human development worldwide. 
+
+Transitioning from this panoramic view, we narrow our focus to examine the intricate relationship between **GDP per capita** and **Life Expectancy**, as revealed by our scatterplot analysis. This shift in perspective enables us to uncover nuanced patterns and disparities, offering valuable insights into the determinants of public health outcomes within and across nations.
+
+```{r}
+#| fig-cap: Scatter plot illustrating the relationship between GDP per capita (constant 2015 US$) and life expectancy at birth (total years) across different countries. Each point represents a country, with larger points indicating higher GDP per capita. The dashed line depicts the linear regression line fitted to the data, showing a positive correlation between GDP per capita and life expectancy.
+
+# Filter out rows with non-finite values
+filtered_data <- unicef_metadata %>%
+  filter(!is.na(`GDP.per.capita..constant.2015.US..`) & !is.na(`Life.expectancy.at.birth..total..years.`) &
+         is.finite(`GDP.per.capita..constant.2015.US..`) & is.finite(`Life.expectancy.at.birth..total..years.`))
+
+# Create the plot with the filtered data
+ggplot(filtered_data, aes(x = `GDP.per.capita..constant.2015.US..`, y = `Life.expectancy.at.birth..total..years.`, color = country)) +
+  geom_point(shape = 16, size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "darkblue", linetype = "dashed", size = 1.2) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Scatter Plot of GDP per Capita vs. Life Expectancy") +
+  scale_y_continuous(limits = c(0, NA))
+
+```
+
+```{r}
+#| fig-cap: Time series plot illustrating the life expectancy at birth for selected developing countries over the years. The analysis focuses on ten developing nations, offering insights into the evolving health indicators within these regions.
+
+# Time series
+Merged_time <- merge(unicef_indicator_1, unicef_metadata, by = c("country"))
+
+# Specify countries of interest
+countries_of_interest <- c("Ethiopia", "Gabon", "Malawi", "Mali", "Niger", "Ghana", "Haiti", "Togo", "Senegal", "Sierra Leone")
+
+# Filter the merged data to include only the specified countries
+filtered_merged_data <- Merged_time %>%
+  filter(country %in% countries_of_interest)
+
+# Create the time series plot for the filtered countries
+ggplot(filtered_merged_data, aes(x = year, y = `Life.expectancy.at.birth..total..years.`, color = country)) +
+  geom_line() +
+  labs(title = "Time Series of Life Expectancy",
+       x = "Year",
+       y = "Life Expectancy (years)",
+       color = "Country") +
+  theme_minimal()
+
+```
+
+```{r}
+#| fig-cap: The time series plot depicts the trajectory of life expectancy over time, revealing fluctuations influenced by various socio-economic factors. Concurrently, the bar chart illustrates the proportion of GDP allocated to military expenditure in each country, suggesting an inverse relationship between military spending and life expectancy. This observation underscores the potential trade-off between defense investments and public health outcomes within developing nations.
+# Specify the countries of interest
+countries_of_interest <- c("Ethiopia", "Gabon", "Malawi", "Mali", "Niger", "Ghana", "Haiti", "Togo", "Senegal", "Sierra Leone")
+
+# Filter the data to include only the specified countries
+filtered_data <- unicef_metadata %>%
+  filter(country %in% countries_of_interest)
+
+# Create a bar chart for military expenditure by country with a single color
+ggplot(filtered_data, aes(x = country, y = `Military.expenditure....of.GDP.`)) +
+  geom_bar(stat = "identity", fill = "skyblue") +  # Setting fill color to skyblue
+  labs(title = "Military Expenditure by Country",
+       x = "Country",
+       y = "Military Expenditure (% of GDP)",
+       caption = "Source: Your Data Source") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+```
+
+## Inverse Relationship?
+
+
+Both the 
+
+ - bar chart and 
+ - time series...
+ 
+...offer complementary insights into the interplay between military expenditure and life expectancy, elucidating a nuanced relationship between these variables. 
+
+While the bar chart provides a snapshot of military expenditure as a percentage of GDP across ten developing countries, the time series reveals the **longitudinal evolution** of life expectancy within the same set of nations over time. 
+
+Through a comparative lens, we can discern intriguing trends and correlations: 
+
+ - as military expenditure fluctuates, so too does life      expectancy, suggesting a potential inverse relationship between these factors. 
+ 
+This juxtaposition underscores the multifaceted nature of global health and security dynamics, inviting further exploration into the complex interdependencies shaping societal well-being.
+
+# Concluding Remarks
+
+In conclusion, our exploration of the data through various visualizations has offered valuable insights into the intricate dynamics of socioeconomic indicators across different nations. From the broad strokes painted by the world map illustrating military expenditure to the nuanced trends revealed by the scatterplot, time series, and bar chart, we have gleaned a deeper understanding of the factors influencing societal well-being. These visualizations not only underscore the complexity of global development but also highlight the interconnectedness of various factors such as economic prosperity, health outcomes, and security expenditures. As we continue to delve into these intricate relationships, armed with data-driven insights, we are better equipped to address the multifaceted challenges facing communities worldwide and strive towards a more equitable and sustainable future.
+

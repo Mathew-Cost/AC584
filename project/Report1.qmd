@@ -1,0 +1,42 @@
+---
+title: "My First Quarto Document"
+subtitle: "My Subtitle"
+author: "Damien Dupre"
+date: "2000-01-01"
+format: html
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+#libraries
+library(tidyverse)
+library(plotly)
+
+#data
+unicef_metadata <- read_csv("unicef_metadata.csv")
+unicef_indicator_1 <- read_csv("unicef_indicator_1.csv")
+
+#transformations
+data_join <- full_join(unicef_metadata,unicef_indicator_1)
+```
+```{r}
+map_1 <- map_data("world")
+
+map_viz <- full_join(unicef_Indicator, map_1, by = c("country" = "region"))
+
+ggplot(map_viz) + 
+  aes(x = long, y = lat, group = group, fill = obs_value) +
+  geom_polygon(color = "gray80", size = 0.1) +  # Add borders with a lighter gray color +
+   scale_fill_gradient(name = "Observed Value", low = "lightblue", high = "darkblue", na.value = "white") +  # Adjust color scale
+   labs(title = "Map Visualization of Observed Values", x = NULL, y = NULL) +  # Remove axis labels
+   theme_void() +  # Use a clean background
+   theme(plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),  # Adjust title appearance
+         legend.position = "bottom",  # Move legend to bottom
+         legend.title = element_text(size = 12, face = "bold"),  # Adjust legend title appearance
+         legend.text = element_text(size = 10))  # Adjust legend text appearance
+
+
+```
+
